@@ -35,6 +35,8 @@ cat > user_nl_elm <<EON
  hist_nhtfrq = -24
  hist_mfilt = 1
 EON
+# single-point runs need 1 core: drop CIME's default --exclusive (whole 128-core node, long htc waits)
+sed -i '/--exclusive/d' env_batch.xml
 ./case.setup || exit 1
 ./preview_namelists || { echo "== preview_namelists FAILED"; exit 1; }
 echo "== datm streams:"; grep -h -A1 "streams" CaseDocs/datm_in | head -6
