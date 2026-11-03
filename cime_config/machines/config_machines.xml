@@ -2074,6 +2074,45 @@
     </environment_variables>
   </machine>
 
+  <machine MACH="sol">
+    <DESC>ASU Research Computing Sol (Rocky 8, AMD zen3), Intel oneAPI 2022.1 + Intel MPI 2021.10; modules loaded by sol/e3sm_env.sh</DESC>
+    <NODENAME_REGEX>sol-login.*|sc\d+|sg\d+|scg\d+</NODENAME_REGEX>
+    <OS>LINUX</OS>
+    <COMPILERS>intel</COMPILERS>
+    <MPILIBS>impi</MPILIBS>
+    <CIME_OUTPUT_ROOT>/scratch/$USER/elm_work/e3sm_runs</CIME_OUTPUT_ROOT>
+    <DIN_LOC_ROOT>/scratch/$USER/elm_work/e3sm_inputdata</DIN_LOC_ROOT>
+    <DIN_LOC_ROOT_CLMFORC>/scratch/$USER/elm_work/e3sm_inputdata/atm/datm7</DIN_LOC_ROOT_CLMFORC>
+    <DOUT_S_ROOT>/scratch/$USER/elm_work/e3sm_archive/$CASE</DOUT_S_ROOT>
+    <BASELINE_ROOT>/scratch/$USER/elm_work/e3sm_baselines/$COMPILER</BASELINE_ROOT>
+    <CCSM_CPRNC>UNSET</CCSM_CPRNC>
+    <GMAKE_J>4</GMAKE_J>
+    <BATCH_SYSTEM>slurm</BATCH_SYSTEM>
+    <SUPPORTED_BY>jmarindi</SUPPORTED_BY>
+    <MAX_TASKS_PER_NODE>128</MAX_TASKS_PER_NODE>
+    <MAX_MPITASKS_PER_NODE>128</MAX_MPITASKS_PER_NODE>
+    <PROJECT_REQUIRED>FALSE</PROJECT_REQUIRED>
+    <mpirun mpilib="default">
+      <executable>srun</executable>
+      <arguments>
+        <arg name="num_tasks"> -n {{ total_tasks }} -N {{ num_nodes }} --kill-on-bad-exit </arg>
+      </arguments>
+    </mpirun>
+    <module_system type="none"/>
+    <RUNDIR>$CIME_OUTPUT_ROOT/$CASE/run</RUNDIR>
+    <EXEROOT>$CIME_OUTPUT_ROOT/$CASE/bld</EXEROOT>
+    <environment_variables>
+      <env name="NETCDF_C_PATH">$SHELL{dirname $(dirname $(which nc-config))}</env>
+      <env name="NETCDF_FORTRAN_PATH">$SHELL{dirname $(dirname $(which nf-config))}</env>
+      <env name="I_MPI_CC">icc</env>
+      <env name="I_MPI_CXX">icpc</env>
+      <env name="I_MPI_FC">ifort</env>
+      <env name="I_MPI_F90">ifort</env>
+      <env name="UCX_TLS">sm,tcp,self</env>
+      <env name="OMP_NUM_THREADS">1</env>
+    </environment_variables>
+  </machine>
+
   <machine MACH="anvil">
     <DESC>ANL/LCRC Linux Cluster</DESC>
     <NODENAME_REGEX>(b\d+|blues.*).lcrc.anl.gov</NODENAME_REGEX>

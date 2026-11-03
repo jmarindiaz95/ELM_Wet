@@ -355,6 +355,13 @@
       </queues>
     </batch_system>
 
+    <batch_system MACH="sol" type="slurm" >
+      <queues>
+        <queue walltimemax="04:00:00" nodemax="1" default="true">htc</queue>
+        <queue walltimemax="168:00:00" nodemax="8">public</queue>
+      </queues>
+    </batch_system>
+
     <batch_system MACH="anvil" type="slurm" >
       <queues>
 	<queue walltimemax="48:00:00" nodemax="5" default="true" strict="true">acme-small</queue>
