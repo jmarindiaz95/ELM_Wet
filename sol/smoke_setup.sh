@@ -7,7 +7,7 @@ CASE=/scratch/$USER/elm_work/e3sm_cases/smoke_brazil
 mkdir -p /scratch/$USER/elm_work/e3sm_cases /scratch/$USER/elm_work/e3sm_inputdata
 rm -rf $CASE /scratch/$USER/elm_work/e3sm_runs/smoke_brazil
 $E3SM_SRC/cime/scripts/create_newcase --case $CASE --res 1x1_brazil --compset IELM \
-   --machine sol --compiler intel --mpilib impi --run-unsupported --queue htc --walltime 01:00:00 || exit 1
+   --machine sol --compiler intel --mpilib impi --queue htc --walltime 01:00:00 || exit 1
 cd $CASE
 ./xmlchange NTASKS=1,NTHRDS=1,ROOTPE=0
 ./xmlchange STOP_OPTION=ndays,STOP_N=1,DOUT_S=FALSE,PIO_TYPENAME=netcdf
