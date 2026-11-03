@@ -22,6 +22,9 @@ $E3SM_SRC/cime/scripts/create_newcase --case $CASE --res ELM_USRDAT \
    --machine sol --compiler intel --mpilib impi --queue htc --walltime 01:00:00 || exit 1
 cd $CASE
 ./xmlchange NTASKS=1,NTHRDS=1,ROOTPE=0
+# Slurm account: CIME otherwise passes the placeholder 'PROJECT' to sbatch --account
+ACCT=$(sacctmgr -nP show assoc user=$USER format=account | head -1)
+[ -n "$ACCT" ] && ./xmlchange PROJECT=$ACCT && echo "== Slurm account: $ACCT"
 ./xmlchange ELM_USRDAT_NAME=$SITE
 ./xmlchange ATM_DOMAIN_PATH=$DIN/share/domains/domain.clm,LND_DOMAIN_PATH=$DIN/share/domains/domain.clm
 ./xmlchange ATM_DOMAIN_FILE=domain.lnd.$SITE.nc,LND_DOMAIN_FILE=domain.lnd.$SITE.nc
