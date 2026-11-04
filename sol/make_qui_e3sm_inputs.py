@@ -22,6 +22,7 @@ p = argparse.ArgumentParser()
 p.add_argument('--surf', required=True)
 p.add_argument('--forc', required=True)
 p.add_argument('--out', required=True)
+p.add_argument('--wtd', default=None, help='CLM_SPRUCE PE-QFR_forcing_input_2018-2019.csv.gz (WTD_GAPFILLED_m); adds the wetland surface file')
 a = p.parse_args()
 
 # ---------------------------------------------------------------- surface data
@@ -107,3 +108,38 @@ for f in files:
     o['LONGXY'][:] = [LON]
     o.close(); s.close()
 print(f'wrote {len(files)} forcing files to {od}')
+
+# ---------------------------------------------------------------- wetland surface file (ELM-Wet)
+# Same cell, wetland landunit at 100%, daily surface water elevation from the tower water table.
+# ELM-Wet reads SurfWatElev_Wet_<year>(day 0-364, pft 0..numpft) in mm, positive above the soil surface,
+# and sets zwt = -(value + h2osfc_wet_lb)/1000, so the tower WTD (m, positive above surface) enters as WTD*1000
+# with h2osfc_wet_lb = 0. Years 2018 and 2019 from WTD_GAPFILLED_m (daily means, complete for 2018-2019);
+# the year-less SurfWatElev_Wet (used for any other model year) is set to 2018.
+if a.wtd:
+    import pandas as pd, shutil
+    w = pd.read_csv(a.wtd)
+    t = pd.to_datetime(w['TIMESTAMP_START'].astype(str), format='%Y%m%d%H%M')
+    x = pd.Series(pd.to_numeric(w['WTD_GAPFILLED_m'], errors='coerce').values, index=t)
+    daily = x.resample('D').mean()
+    fw = f'{a.out}/lnd/clm2/surfdata_map/surfdata_{SITE}_wet_simyr2000.nc'
+    shutil.copyfile(fs, fw)
+    dw = nc.Dataset(fw, 'a')
+    for v in ['PCT_NATVEG', 'PCT_CROP', 'PCT_LAKE', 'PCT_GLACIER', 'PCT_URBAN']:
+        if v in dw.variables: dw[v][:] = 0.0
+    dw['PCT_WETLAND'][:] = 100.0
+    npft = len(dw.dimensions['natpft'])
+    if 'day365' not in dw.dimensions: dw.createDimension('day365', 365)
+    series = {}
+    for y in (2018, 2019):
+        d = daily[str(y)]
+        d = d[~((d.index.month == 2) & (d.index.day == 29))]           # noleap calendar
+        assert len(d) == 365 and d.notna().all(), f'WTD {y}: {len(d)} days, {d.isna().sum()} missing'
+        series[y] = d.to_numpy() * 1000.0
+        print(f'  WTD {y}: mean {d.mean():+.3f} m, min {d.min():+.3f}, max {d.max():+.3f}')
+    for name, vals in [('SurfWatElev_Wet_2018', series[2018]), ('SurfWatElev_Wet_2019', series[2019]), ('SurfWatElev_Wet', series[2018])]:
+        v = dw.createVariable(name, 'f8', ('day365', 'natpft', 'lsmlat', 'lsmlon'))
+        v.units = 'mm'; v.long_name = 'wetland surface water elevation, positive above the soil surface (PE-QFR tower WTD_GAPFILLED_m)'
+        v[:] = np.repeat(vals[:, None], npft, axis=1)[:, :, None, None]
+    dw.history += '; wetland landunit 100% and SurfWatElev_Wet_* from the PE-QFR tower water table'
+    dw.close()
+    print('wrote', fw)
