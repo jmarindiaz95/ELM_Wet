@@ -371,6 +371,7 @@ contains
     use column_varcon   , only : icemec_class_to_col_itype
     use subgridMod      , only : subgrid_get_topounitinfo
     use pftvarcon       , only : noveg, nc3_nonarctic_grass
+    use elm_varctl      , only : wetl_col1_wt, wetl_pft
 
     !
     ! !ARGUMENTS:    
@@ -391,6 +392,7 @@ contains
     integer  :: npfts                            ! number of pfts in landunit
     real(r8) :: wtlunit2topounit                 ! landunit weight in topounit
     real(r8) :: wtcol2lunit                      ! col weight in landunit
+    integer  :: wpft                             ! PFT of the wetland patches
     !------------------------------------------------------------------------
 
     ! Set decomposition properties
@@ -450,14 +452,23 @@ contains
 
        elseif (ltype==istwet) then
 
-          !Currently assume that wetland landunit has c3grass characteristics
+          ! Two wetland columns, one patch each. Published ELM-Wet: C3 non-arctic grass, 0.5/0.5.
+          ! Namelist wetl_pft / wetl_col1_wt set another PFT and column split (e.g. hummock/hollow 0.64/0.36).
+          if (wetl_pft >= 0) then
+             wpft = wetl_pft
+          else
+             wpft = nc3_nonarctic_grass
+          end if
+          if (wetl_col1_wt <= 0._r8 .or. wetl_col1_wt >= 1._r8) then
+             call endrun(msg=' ERROR: wetl_col1_wt must be between 0 and 1 (exclusive)'//errMsg(__FILE__, __LINE__))
+          end if
 
           call add_landunit(li=li, ti=ti, ltype=ltype, wttopounit=wtlunit2topounit)
-          call add_column(ci=ci, li=li, ctype=ltype, wtlunit=0.5_r8)
-          call add_patch(pi=pi, ci=ci, ptype=nc3_nonarctic_grass, wtcol=1.0_r8)
+          call add_column(ci=ci, li=li, ctype=ltype, wtlunit=wetl_col1_wt)
+          call add_patch(pi=pi, ci=ci, ptype=wpft, wtcol=1.0_r8)
 
-          call add_column(ci=ci, li=li, ctype=ltype, wtlunit=0.5_r8)
-          call add_patch(pi=pi, ci=ci, ptype=nc3_nonarctic_grass, wtcol=1.0_r8)
+          call add_column(ci=ci, li=li, ctype=ltype, wtlunit=1.0_r8 - wetl_col1_wt)
+          call add_patch(pi=pi, ci=ci, ptype=wpft, wtcol=1.0_r8)
 
        else
 

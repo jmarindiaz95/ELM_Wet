@@ -1531,6 +1531,16 @@ If TRUE, weight btran (vegetation soil moisture availability) by the active laye
 Read wetland surface water elevation from input surface file
 </entry>
 
+<entry id="wetl_col1_wt" type="real" category="physics"
+       group="elm_inparm" valid_values="" >
+Landunit weight of wetland column 1; column 2 gets 1 - wetl_col1_wt (default 0.5, published ELM-Wet).
+</entry>
+
+<entry id="wetl_pft" type="integer" category="physics"
+       group="elm_inparm" valid_values="" >
+PFT index of both wetland patches; -1 (default) keeps C3 non-arctic grass (published ELM-Wet).
+</entry>
+
 <!-- ========================================================================================  -->
 <!-- namelist elements associated with the LISSS Lake Model                                    -->
 <!-- ========================================================================================  -->
