@@ -88,6 +88,7 @@ contains
     use spmdMod          , only : masterproc, mpicom, MPI_REAL8, MPI_INTEGER
     use shr_scam_mod     , only : shr_scam_getCloseLatLon
     use clm_time_manager , only : get_nstep,get_curr_calday,get_curr_date
+    use elm_varctl       , only : wetl_col1_elev_offset, wetl_elev_yr_first, wetl_elev_yr_last
     use LandunitType   , only: lun_pp
     use ColumnType   , only: col_pp
     use landunit_varcon   , only: istwet
@@ -116,6 +117,8 @@ contains
     character(len=32) :: subname = 'readDailyWetSurfWatElev'
     integer :: jday        ! julian day of the year
     integer :: year,mon,day,sec    !Date components for end of current time step
+    integer :: yr_eff              ! year whose water level is used
+    character(len=32) :: wvarname  ! SurfWatElev_Wet_<year>
     
     !-----------------------------------------------------------------------
 
@@ -145,55 +148,24 @@ contains
             closelatidx, closelonidx)
     endif
 
-    if (year == 2012) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2012', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2013) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2013', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2014) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2014', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2015) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2015', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2016) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2016', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2017) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2017', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2018) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2018', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2019) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2019', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2020) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2020', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2021) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2021', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    elseif (year == 2022) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet_2022', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    else
+    ! Variable for the current year: SurfWatElev_Wet_<year>; with wetl_elev_yr_first/last set, model years
+    ! outside that range cycle through it (e.g. 2018-2019 in a spinup with cycled 2018-2019 forcing).
+    ! A missing year-specific variable falls back to the year-less SurfWatElev_Wet (published behaviour).
+    yr_eff = year
+    if (wetl_elev_yr_first > 0 .and. wetl_elev_yr_last >= wetl_elev_yr_first) then
+       if (year < wetl_elev_yr_first .or. year > wetl_elev_yr_last) then
+          yr_eff = wetl_elev_yr_first + modulo(year - wetl_elev_yr_first, wetl_elev_yr_last - wetl_elev_yr_first + 1)
+       end if
+    end if
+    write(wvarname,'(a,i4.4)') 'SurfWatElev_Wet_', yr_eff
+    call ncd_io(ncid=ncid, varname=trim(wvarname), flag='read', data=SurfWatElev, dim1name=grlnd, &
+         readvar=readvar)
+    if (.not. readvar) then
        call ncd_io(ncid=ncid, varname='SurfWatElev_Wet', flag='read', data=SurfWatElev, dim1name=grlnd, &
             readvar=readvar)
        if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    endif
+    end if
+
 
        ! Assign surface water depth to each pft
        do p = bounds%begp,bounds%endp
@@ -201,11 +173,13 @@ contains
           c = veg_pp%column(p)
 
           if (lun_pp%itype(col_pp%landunit(c)) == istwet) then
-             if (SurfWatElev(g,p,jday-1) <= 1200) then
-                col_ws%h2osfc_wet(c) = SurfWatElev(g,13,jday-1)
-             else
-                col_ws%h2osfc_wet(c) = 1200_r8
-             endif
+             ! index 13 (the published wetland patch type) for both the test and the value; the original test
+             ! used the patch index p, which is out of the 0:numpft range at most sites
+             col_ws%h2osfc_wet(c) = min(SurfWatElev(g,13,jday-1), 1200._r8)
+             ! first wetland column (hummock) sits wetl_col1_elev_offset mm above the second (hollow)
+             if (c == lun_pp%coli(col_pp%landunit(c))) then
+                col_ws%h2osfc_wet(c) = col_ws%h2osfc_wet(c) - wetl_col1_elev_offset
+             end if
           else
              col_ws%h2osfc_wet(c) = 0_r8
           endif

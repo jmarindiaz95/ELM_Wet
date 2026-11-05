@@ -256,6 +256,9 @@ module elm_varctl
   logical, public :: read_wetl_surf_wat_elev_from_surf = .false. ! true => Read wetland surface water elevation from input surface file
   real(r8), public :: wetl_col1_wt = 0.5_r8  ! landunit weight of wetland column 1 (column 2 gets 1 - wetl_col1_wt); 0.5 = published ELM-Wet
   integer, public :: wetl_pft = -1           ! PFT index of both wetland patches; -1 = C3 non-arctic grass (published ELM-Wet)
+  real(r8), public :: wetl_col1_elev_offset = 0._r8 ! height (mm) of wetland column 1 (hummock) above column 2; forced water level is lowered by it
+  integer, public :: wetl_elev_yr_first = 0   ! first year of SurfWatElev_Wet_<year> to cycle through (0 = no cycling, published behaviour)
+  integer, public :: wetl_elev_yr_last = 0    ! last year of the cycle
   
   !----------------------------------------------------------
   ! plant hydraulic stress switch

@@ -1541,6 +1541,21 @@ Landunit weight of wetland column 1; column 2 gets 1 - wetl_col1_wt (default 0.5
 PFT index of both wetland patches; -1 (default) keeps C3 non-arctic grass (published ELM-Wet).
 </entry>
 
+<entry id="wetl_col1_elev_offset" type="real" category="physics"
+       group="elm_inparm" valid_values="" >
+Height (mm) of wetland column 1 (hummock) above column 2 (hollow); the forced water level of column 1 is lowered by it (default 0).
+</entry>
+
+<entry id="wetl_elev_yr_first" type="integer" category="physics"
+       group="elm_inparm" valid_values="" >
+First year of SurfWatElev_Wet_YEAR to cycle through for model years outside wetl_elev_yr_first..wetl_elev_yr_last (0, default: no cycling).
+</entry>
+
+<entry id="wetl_elev_yr_last" type="integer" category="physics"
+       group="elm_inparm" valid_values="" >
+Last year of the water level cycle (see wetl_elev_yr_first).
+</entry>
+
 <!-- ========================================================================================  -->
 <!-- namelist elements associated with the LISSS Lake Model                                    -->
 <!-- ========================================================================================  -->
