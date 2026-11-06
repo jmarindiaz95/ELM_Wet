@@ -9,4 +9,4 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
   COMMAND_ERROR_IS_FATAL ANY
 )
-string(APPEND SLIBS " ${NETCDF_FORTRAN_LIBS} -lblas -llapack")
+string(APPEND SLIBS " ${NETCDF_FORTRAN_LIBS} -lblas -llapack -lstdc++")
