@@ -2113,6 +2113,44 @@
     </environment_variables>
   </machine>
 
+  <machine MACH="local">
+    <DESC>Ubuntu 24.04 Docker container mounted at /work; GNU 13, MPICH, and system NetCDF</DESC>
+    <NODENAME_REGEX>none</NODENAME_REGEX>
+    <OS>LINUX</OS>
+    <COMPILERS>gnu</COMPILERS>
+    <MPILIBS>mpich</MPILIBS>
+    <CIME_OUTPUT_ROOT>/work/runs</CIME_OUTPUT_ROOT>
+    <DIN_LOC_ROOT>/work/inputs/scratch/jmarindi/elm_work/e3sm_inputdata</DIN_LOC_ROOT>
+    <DIN_LOC_ROOT_CLMFORC>/work/inputs/scratch/jmarindi/elm_work/e3sm_inputdata/atm/datm7</DIN_LOC_ROOT_CLMFORC>
+    <DOUT_S_ROOT>/work/runs/archive/$CASE</DOUT_S_ROOT>
+    <BASELINE_ROOT>/work/baselines/$COMPILER</BASELINE_ROOT>
+    <CCSM_CPRNC>UNSET</CCSM_CPRNC>
+    <GMAKE>make</GMAKE>
+    <GMAKE_J>4</GMAKE_J>
+    <BATCH_SYSTEM>none</BATCH_SYSTEM>
+    <SUPPORTED_BY>jmarindi</SUPPORTED_BY>
+    <MAX_TASKS_PER_NODE>1</MAX_TASKS_PER_NODE>
+    <MAX_MPITASKS_PER_NODE>1</MAX_MPITASKS_PER_NODE>
+    <PROJECT_REQUIRED>FALSE</PROJECT_REQUIRED>
+    <mpirun mpilib="default">
+      <executable>mpiexec</executable>
+      <arguments>
+        <arg name="num_tasks"> -n {{ total_tasks }}</arg>
+      </arguments>
+    </mpirun>
+    <module_system type="none"/>
+    <RUNDIR>$CIME_OUTPUT_ROOT/$CASE/run</RUNDIR>
+    <EXEROOT>$CIME_OUTPUT_ROOT/$CASE/bld</EXEROOT>
+    <environment_variables>
+      <env name="NETCDF_PATH">/usr</env>
+      <env name="NETCDF_C_PATH">/usr</env>
+      <env name="NETCDF_FORTRAN_PATH">/usr</env>
+      <env name="HDF5_PATH">/usr</env>
+      <env name="OMP_NUM_THREADS">1</env>
+      <env name="OMP_STACKSIZE">64M</env>
+    </environment_variables>
+  </machine>
+
   <machine MACH="anvil">
     <DESC>ANL/LCRC Linux Cluster</DESC>
     <NODENAME_REGEX>(b\d+|blues.*).lcrc.anl.gov</NODENAME_REGEX>
