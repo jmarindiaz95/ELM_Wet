@@ -1,5 +1,6 @@
 #!/bin/bash
 # QUI ELM-Wet accelerated-decomposition (AD) spinup, 200 years from a cold start (login node part).
+# Case qui_wet_ad2 (Nov 5): qui_wet_ad ran in normal mode (spinup_state 0) and was killed for memory at year 195.
 # Same configuration as qui_wet_setup.sh plus: hummock column 150 mm above the hollow (humhol_ht as in
 # ELM-SPRUCE), water level cycled 2018-2019 with the forcing (model years start at 2018, forcing aligned to 2018).
 # About 1 min per model year; restarts every 25 years. Yearly output (gridcell and per column).
@@ -8,7 +9,7 @@ source /scratch/$USER/elm_work/ELM_Wet/sol/e3sm_env.sh
 W=/scratch/$USER/elm_work
 DIN=$W/e3sm_inputdata
 SITE=1x1pt_PE-QFR
-CNAME=qui_wet_ad
+CNAME=qui_wet_ad2
 CASE=$W/e3sm_cases/$CNAME
 GSURF=$DIN/lnd/clm2/surfdata_map/surfdata_0.5x0.5_simyr2000_c200624.nc
 FSRC=$W/CLM_SPRUCE/inputdata/atm/datm7/CLM1PT_data/2x1pt_PE-QFR
@@ -31,7 +32,7 @@ ACCT=$(sacctmgr -nP show assoc user=$USER format=account | head -1)
 ./xmlchange ATM_DOMAIN_FILE=domain.lnd.$SITE.nc,LND_DOMAIN_FILE=domain.lnd.$SITE.nc
 ./xmlchange DATM_CLMNCEP_YR_START=2018,DATM_CLMNCEP_YR_END=2019,DATM_CLMNCEP_YR_ALIGN=2018
 ./xmlchange RUN_STARTDATE=2018-01-01,STOP_OPTION=nyears,STOP_N=200,REST_OPTION=nyears,REST_N=25,DOUT_S=FALSE,PIO_TYPENAME=netcdf
-./xmlchange ELM_ACCELERATED_SPINUP=on
+./xmlchange --append ELM_BLDNML_OPTS=" -bgc_spinup on"   # ELM_ACCELERATED_SPINUP is not used by this ELM buildnml
 sed -i '/--exclusive/d' env_batch.xml
 cat > user_nl_elm <<EON
  fsurdat = '$DIN/lnd/clm2/surfdata_map/surfdata_${SITE}_wet_simyr2000.nc'
@@ -58,6 +59,7 @@ cat >> user_nl_elm <<EON
  hist_fincl2 = 'ZWT', 'H2OSFC', 'FINUNDATED', 'FCH4', 'CH4PROD', 'TOTSOMC', 'TOTVEGC', 'TOTLITC', 'QDRAI', 'QOVER'
 EON
 ./preview_namelists || { echo "== preview_namelists FAILED"; exit 1; }
-grep -E "wetl|paramfile|fsurdat|use_lch4" CaseDocs/lnd_in
+grep -E "wetl|paramfile|fsurdat|use_lch4|spinup_state" CaseDocs/lnd_in
+grep -q "spinup_state = 1" CaseDocs/lnd_in || { echo "ERROR: spinup_state is not 1 (accelerated spinup not on)"; exit 1; }
 ./check_input_data --download
 ./check_input_data && echo "== inputs complete; next: sbatch $E3SM_SRC/sol/smoke_build_run.sh $CNAME"

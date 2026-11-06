@@ -43,6 +43,11 @@ module WetlandSurfWatElevation
   private :: readDailyWetSurfWatElev  ! read monthly vegetation data for two months
   !
   ! !PRIVATE TYPES:
+  ! Water level of the current year (index 13, mm), cached so the surface file is read once per year;
+  ! the published code reopened the file and read all 365 days at every time step (memory grew
+  ! about 9 MB per model year at QUI until the job was killed).
+  real(r8), allocatable, save :: wse_cache(:,:)        ! (begg:endg, 0:364)
+  integer, save :: wse_cache_yr = -99999               ! year held in wse_cache
 
   !-----------------------------------------------------------------------
 
@@ -127,27 +132,6 @@ contains
     jday =  get_curr_calday()
     call get_curr_date(year,mon,day,sec)
     
-    allocate(&
-         SurfWatElev(bounds%begg:bounds%endg,0:numpft,0:364), &
-         stat=ier)
-    if (ier /= 0) then
-       write(iulog,*)subname, 'allocation big error '
-       call endrun(msg=errMsg(__FILE__, __LINE__))
-    end if
-
-    ! ----------------------------------------------------------------------
-    ! Open Surface Water Elevation file
-    ! Read data and convert from gridcell to pft data
-    ! ----------------------------------------------------------------------
-
-    call getfil(fveg, locfn, 0)
-    call ncd_pio_openfile (ncid, trim(locfn), 0)
-
-    if (single_column) then
-       call shr_scam_getCloseLatLon (ncid, scmlat, scmlon, closelat, closelon,&
-            closelatidx, closelonidx)
-    endif
-
     ! Variable for the current year: SurfWatElev_Wet_<year>; with wetl_elev_yr_first/last set, model years
     ! outside that range cycle through it (e.g. 2018-2019 in a spinup with cycled 2018-2019 forcing).
     ! A missing year-specific variable falls back to the year-less SurfWatElev_Wet (published behaviour).
@@ -157,15 +141,43 @@ contains
           yr_eff = wetl_elev_yr_first + modulo(year - wetl_elev_yr_first, wetl_elev_yr_last - wetl_elev_yr_first + 1)
        end if
     end if
-    write(wvarname,'(a,i4.4)') 'SurfWatElev_Wet_', yr_eff
-    call ncd_io(ncid=ncid, varname=trim(wvarname), flag='read', data=SurfWatElev, dim1name=grlnd, &
-         readvar=readvar)
-    if (.not. readvar) then
-       call ncd_io(ncid=ncid, varname='SurfWatElev_Wet', flag='read', data=SurfWatElev, dim1name=grlnd, &
-            readvar=readvar)
-       if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
-    end if
 
+    if (yr_eff /= wse_cache_yr) then
+       allocate(&
+            SurfWatElev(bounds%begg:bounds%endg,0:numpft,0:364), &
+            stat=ier)
+       if (ier /= 0) then
+          write(iulog,*)subname, 'allocation big error '
+          call endrun(msg=errMsg(__FILE__, __LINE__))
+       end if
+
+       ! ----------------------------------------------------------------------
+       ! Open Surface Water Elevation file
+       ! Read data and convert from gridcell to pft data
+       ! ----------------------------------------------------------------------
+
+       call getfil(fveg, locfn, 0)
+       call ncd_pio_openfile (ncid, trim(locfn), 0)
+
+       if (single_column) then
+          call shr_scam_getCloseLatLon (ncid, scmlat, scmlon, closelat, closelon,&
+               closelatidx, closelonidx)
+       endif
+
+       write(wvarname,'(a,i4.4)') 'SurfWatElev_Wet_', yr_eff
+       call ncd_io(ncid=ncid, varname=trim(wvarname), flag='read', data=SurfWatElev, dim1name=grlnd, &
+            readvar=readvar)
+       if (.not. readvar) then
+          call ncd_io(ncid=ncid, varname='SurfWatElev_Wet', flag='read', data=SurfWatElev, dim1name=grlnd, &
+               readvar=readvar)
+          if (.not. readvar) call endrun(msg=' ERROR: SurfWatElev_Wet NOT on fveg file'//errMsg(__FILE__, __LINE__))
+       end if
+       call ncd_pio_closefile(ncid)
+       if (.not. allocated(wse_cache)) allocate(wse_cache(bounds%begg:bounds%endg,0:364))
+       wse_cache(bounds%begg:bounds%endg,0:364) = SurfWatElev(bounds%begg:bounds%endg,13,0:364)
+       deallocate(SurfWatElev)
+       wse_cache_yr = yr_eff
+    end if
 
        ! Assign surface water depth to each pft
        do p = bounds%begp,bounds%endp
@@ -175,7 +187,7 @@ contains
           if (lun_pp%itype(col_pp%landunit(c)) == istwet) then
              ! index 13 (the published wetland patch type) for both the test and the value; the original test
              ! used the patch index p, which is out of the 0:numpft range at most sites
-             col_ws%h2osfc_wet(c) = min(SurfWatElev(g,13,jday-1), 1200._r8)
+             col_ws%h2osfc_wet(c) = min(wse_cache(g,jday-1), 1200._r8)
              ! first wetland column (hummock) sits wetl_col1_elev_offset mm above the second (hollow)
              if (c == lun_pp%coli(col_pp%landunit(c))) then
                 col_ws%h2osfc_wet(c) = col_ws%h2osfc_wet(c) - wetl_col1_elev_offset
@@ -185,11 +197,6 @@ contains
           endif
                        
        end do   ! end of loop over patches
-
-
-    call ncd_pio_closefile(ncid)
-
-    deallocate(SurfWatElev)
 
   end subroutine readDailyWetSurfWatElev
 
