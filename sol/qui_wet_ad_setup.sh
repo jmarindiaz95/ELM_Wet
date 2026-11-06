@@ -43,8 +43,14 @@ cat > user_nl_elm <<EON
  wetl_elev_yr_first = 2018
  wetl_elev_yr_last = 2019
 EON
+# loop the 2018-2019 forcing: for ELM_USRDAT the datm default taxmode is 'extend', which holds the last
+# record after 2019 (no sunlight, no rain; the vegetation collapsed in the first runs). Streams: CLM1PT, presaero, topo.
+cat > user_nl_datm <<EOD
+ taxmode = 'cycle', 'cycle', 'cycle'
+EOD
 ./case.setup || exit 1
 ./preview_namelists || { echo "== preview_namelists FAILED"; exit 1; }
+grep -q "taxmode *= *'cycle'" CaseDocs/datm_in || { echo "ERROR: datm taxmode is not cycle"; grep -i taxmode CaseDocs/datm_in; exit 1; }
 ./check_input_data --download                     # default parameter file and BGC streams (ndep, fire)
 PDEF=$(grep -E "^ *paramfile" CaseDocs/lnd_in | sed "s/.*= *'\(.*\)'.*/\1/")
 PWET=$DIN/lnd/clm2/paramdata/clm_params_elmwet_qui.nc

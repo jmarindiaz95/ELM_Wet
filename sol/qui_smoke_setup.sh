@@ -37,8 +37,14 @@ cat > user_nl_elm <<EON
 EON
 # single-point runs need 1 core: drop CIME's default --exclusive (whole 128-core node, long htc waits)
 sed -i '/--exclusive/d' env_batch.xml
+# loop the 2018-2019 forcing: for ELM_USRDAT the datm default taxmode is 'extend', which holds the last
+# record after 2019 (no sunlight, no rain; the vegetation collapsed in the first runs). Streams: CLM1PT, presaero, topo.
+cat > user_nl_datm <<EOD
+ taxmode = 'cycle', 'cycle', 'cycle'
+EOD
 ./case.setup || exit 1
 ./preview_namelists || { echo "== preview_namelists FAILED"; exit 1; }
+grep -q "taxmode *= *'cycle'" CaseDocs/datm_in || { echo "ERROR: datm taxmode is not cycle"; grep -i taxmode CaseDocs/datm_in; exit 1; }
 echo "== datm streams:"; grep -h -A1 "streams" CaseDocs/datm_in | head -6
 ./check_input_data --download
 ./check_input_data && echo "== inputs complete; next: sbatch $E3SM_SRC/sol/smoke_build_run.sh qui_smoke"
